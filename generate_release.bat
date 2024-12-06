@@ -1,56 +1,55 @@
 @echo off
 setlocal enabledelayedexpansion
 
-:: Atualiza o repositório local
 git fetch --all --tags
 
-:: Detecta a branch principal automaticamente
+:: Função para encontrar a branch principal automaticamente (main ou master)
 set "main_branch="
 call :get_main_branch
 if "%main_branch%"=="" (
-    echo [Erro] Nao foi possivel detectar a branch principal. Certifique-se de estar no diretorio correto do repositorio Git.
+    echo Erro: Nao foi possivel detectar a branch principal. Certifique-se de que voce esta no diretorio correto do repositorio Git.
     exit /b 1
 )
 
-echo [Info] Branch principal detectada: %main_branch%
+echo Branch principal detectada: %main_branch%
 
-:: Obtém a última tag e sugere a próxima versão
+:: Função para obter a última tag e sugerir a próxima versão
 set "last_tag="
 call :get_last_tag
-call :calculate_next_version
+if "%last_tag%"=="" (
+    echo Nenhuma tag encontrada. Sugerindo v1.0.0 como primeira tag.
+    set "next_version=v1.0.0"
+) else (
+    for /f "tokens=1-3 delims=." %%a in ("%last_tag:v=%") do (
+        set /a patch=%%c + 1
+        set "next_version=v%%a.%%b.!patch!"
+    )
+)
 
-echo [Info] Ultima tag encontrada: %last_tag%
-echo [Info] Sugestao de nova tag: %next_version%
+echo Ultima versao: %last_tag%
 
-:: Permite ao usuario inserir uma versão personalizada
+:: Solicita ao usuário a versão ou usa a sugestão
 set /p "tag_version=Digite a versao da tag (%next_version%): "
 if "%tag_version%"=="" set "tag_version=%next_version%"
 
-:: Valida o formato da versão
-echo %tag_version% | findstr /r "^v[0-9]\+\.[0-9]\+\.[0-9]\+$" >nul
-if errorlevel 1 (
-    echo [Erro] Formato da tag invalido. Use o formato vX.Y.Z (exemplo: v1.0.1).
-    exit /b 1
-)
+echo Criando tag %tag_version% na branch '%main_branch%' e enviando para o GitHub...
 
-:: Cria a tag no Git
-echo [Info] Criando tag %tag_version% na branch '%main_branch%'...
+:: Cria a tag
 git tag "%tag_version%" "%main_branch%"
 if errorlevel 1 (
-    echo [Erro] Falha ao criar a tag. Verifique se ela ja existe ou se voce tem permissoes adequadas.
+    echo Erro: Falha ao criar a tag %tag_version%. Verifique se a tag ja existe ou se voce tem permissoes adequadas.
     exit /b 1
 )
 
-:: Envia a tag para o repositório remoto
-echo [Info] Enviando tag %tag_version% para o repositório remoto...
+:: Envia a tag para o repositório
 git push origin "%tag_version%"
 if errorlevel 1 (
-    echo [Erro] Falha ao enviar a tag. Verifique sua conexao e permissoes.
+    echo Erro: Falha ao enviar a tag %tag_version% para o GitHub. Verifique sua conexao e permissoes.
     exit /b 1
 )
 
-echo [Sucesso] Tag %tag_version% criada e enviada com sucesso!
-exit /b
+echo Tag %tag_version% criada e enviada com sucesso a partir da branch '%main_branch%'!
+goto :eof
 
 :get_main_branch
 :: Obtém a branch principal (main ou master)
@@ -61,28 +60,16 @@ set "main_branch=%main_branch:refs/remotes/origin/=%"
 exit /b
 
 :get_last_tag
-:: Obtém a última tag do repositório
+:: Obtém a última tag criada no repositório
 for /f "delims=" %%i in ('git describe --tags --abbrev=0 2^>nul') do (
     set "last_tag=%%i"
 )
 
-:: Alternativa caso o comando acima falhe
+:: Verificação alternativa caso a última tag não seja encontrada
 if "%last_tag%"=="" (
     for /f "delims=" %%j in ('git tag --sort=-v:refname ^| findstr /r /v "^$" 2^>nul') do (
         set "last_tag=%%j"
         goto :eof
-    )
-)
-exit /b
-
-:calculate_next_version
-:: Calcula a próxima versão com base na última tag
-if "%last_tag%"=="" (
-    set "next_version=v1.0.0"
-) else (
-    for /f "tokens=1-3 delims=." %%a in ("%last_tag:v=%") do (
-        set /a patch=%%c + 1
-        set "next_version=v%%a.%%b.!patch!"
     )
 )
 exit /b
