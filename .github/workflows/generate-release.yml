@@ -71,15 +71,15 @@ jobs:
                       echo "body=Nenhuma nota de release disponível." >> $GITHUB_OUTPUT
                   fi
 
-            - name: Update manifest data
-              run: |
-                  if [ -f fxmanifest.lua ]; then
-                      REPO_DESCRIPTION=$(curl -s https://api.github.com/repos/${{ github.repository }} | jq -r .description)
-                      sed -i "s/MRIQBOX_VERSION/${{ steps.get_project_information.outputs.version }}/g" fxmanifest.lua
-                  else
-                      echo "Arquivo fxmanifest.lua não encontrado!"
-                      exit 1
-                  fi
+            # - name: Update manifest data
+            #   run: |
+            #       if [ -f fxmanifest.lua ]; then
+            #           REPO_DESCRIPTION=$(curl -s https://api.github.com/repos/${{ github.repository }} | jq -r .description)
+            #           sed -i "s/MRIQBOX_VERSION/${{ steps.get_project_information.outputs.version }}/g" fxmanifest.lua
+            #       else
+            #           echo "Arquivo fxmanifest.lua não encontrado!"
+            #           exit 1
+            #       fi
 
             - name: Create ZIP file
               run: |
