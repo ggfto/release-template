@@ -5,7 +5,7 @@ git fetch --all --tags
 
 :: Detectar branch principal (main ou master)
 set "main_branch="
-for /f "delims=" %%i in ('git symbolic-ref refs/remotes/origin/HEAD ^| findstr /r /v "^$" 2^>nul') do (
+for /f "delims=" %%i in ('git symbolic-ref refs/remotes/origin/HEAD 2^>nul') do (
     set "main_branch=%%i"
 )
 set "main_branch=%main_branch:refs/remotes/origin/=%"
@@ -17,12 +17,14 @@ if "%main_branch%"=="" (
 
 echo Branch principal detectada: %main_branch%
 
-:: Obter a ultima tag e calcular a proxima
+:: Obter a ultima tag valida
 set "last_tag="
-for /f "delims=" %%i in ('git describe --tags --abbrev=0 2^>nul') do (
+for /f "delims=" %%i in ('git tag --sort=-v:refname 2^>nul') do (
     set "last_tag=%%i"
+    goto :found_tag
 )
 
+:found_tag
 if "%last_tag%"=="" (
     echo Nenhuma tag encontrada. Sugerindo v1.0.0 como primeira tag.
     set "next_version=v1.0.0"
